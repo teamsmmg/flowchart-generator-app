@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive HTML Flowchart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --color-dark-bg: #1a1a1a;
+            --color-dark-red: #330000;
+            --color-primary-red: #e50914; /* A vibrant red */
+            --color-accent-red: #ff4500; /* Orange-red for highlights */
+            --color-text-light: #f0f0f0;
+            --color-text-medium: #ccc;
+            --color-border-dark: #444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif; /* Using a modern font */
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--color-dark-bg) 0%, var(--color-dark-red) 100%);
+            color: var(--color-text-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow-y: auto;
+        }
+
+        h2 {
+            color: var(--color-primary-red);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--color-primary-red) 0%, var(--color-dark-red) 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background: linear-gradient(45deg, var(--color-dark-red) 0%, var(--color-primary-red) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.6);
+        }
+
+        .scroll-container {
+            width: 95%;
+            max-width: 1400px;
+            height: 80vh;
+            overflow: auto;
+            border: 2px solid var(--color-primary-red);
+            border-radius: 12px;
+            background-color: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            position: relative; /* For centering SVG */
+        }
+
+        svg {
+            background-color: transparent; /* Let the container background show */
+            cursor: grab;
+            display: block; /* Remove extra space below SVG */
+            margin: 0 auto; /* Center SVG horizontally within scroll-container */
+        }
+
+        svg:active {
+            cursor: grabbing;
+        }
+
+        /* SVG Gradients */
+        defs {
+            pointer-events: none; /* Ensure defs don't interfere with events */
+        }
+
+        .node rect {
+            fill: url(#nodeGradient);
+            stroke: var(--color-primary-red);
+            stroke-width: 2px;
+            rx: 8px;
+            ry: 8px;
+            filter: drop-shadow(0 0 8px rgba(229,9,20,0.3));
+            transition: all 0.3s ease;
+        }
+
+        .node rect:hover {
+            fill: url(#nodeHoverGradient);
+            stroke-width: 3px;
+            cursor: pointer;
+            filter: drop-shadow(0 0 12px rgba(229,9,20,0.6));
+        }
+
+        .node text {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            fill: var(--color-text-light);
+            pointer-events: none;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+
+        .link {
+            fill: none;
+            stroke: var(--color-primary-red);
+            stroke-width: 2px;
+            marker-end: url(#arrowhead);
+            transition: all 0.3s ease;
+        }
+
+        /* Arrowhead color */
+        #arrowhead path {
+            fill: var(--color-primary-red);
+        }
+
+        .highlighted {
+            fill: url(#highlightGradient) !important;
+            stroke: var(--color-accent-red) !important;
+            stroke-width: 4px !important;
+            filter: drop-shadow(0 0 15px rgba(255,69,0,0.8)) !important;
+        }
+
+        .link-highlighted {
+            stroke: var(--color-accent-red) !important;
+            stroke-width: 3px !important;
+            filter: drop-shadow(0 0 10px rgba(255,69,0,0.6));
+        }
+
+        .level-indicator {
+            font-size: 11px;
+            fill: var(--color-text-medium);
+            font-weight: normal;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .level-group {
+            font-size: 16px;
+            font-weight: bold;
+            fill: var(--color-primary-red);
+            text-anchor: start;
+            text-shadow: 0 0 8px rgba(229,9,20,0.7);
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(229, 9, 20, 0.95); /* Red background for tooltip */
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 1000;
+            transform: translate(0, -10px); /* Initial slight offset */
+        }
+        .tooltip.show {
+            opacity: 1;
+            transform: translate(0, 0);
+        }
+    </style>
+</head>
+<body>
+    <h2>Interactive Vertical Flowchart</h2>
+
+    <div class="controls">
+        <button class="btn" onclick="resetHighlight()">Clear Highlights</button>
+        <button class="btn" onclick="centerView()">Center View</button>
+        <button class="btn" onclick="window.location.href='/'">Upload New File</button>
+    </div>
+
+    <div class="scroll-container">
+        <svg width="1200" height="4000">
+            <defs>
+                <!-- Node Gradient -->
+                <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#2a2a2a;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
+                </linearGradient>
+                <!-- Node Hover Gradient -->
+                <linearGradient id="nodeHoverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3a3a3a;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#2a2a2a;stop-opacity:1" />
+                </linearGradient>
+                <!-- Highlight Gradient -->
+                <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#ff4500;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#e50914;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Parse the data from Flask template
+        let nodes, links;
+        try {
+            nodes = JSON.parse('{{ nodes | tojson }}');
+            links = JSON.parse('{{ links | tojson }}');
+        } catch (e) {
+            console.error('Error parsing data:', e);
+            nodes = [];
+            links = [];
+        }
+        console.log('Nodes:', nodes);
+        console.log('Links:', links);
+
+        if (nodes.length === 0) {
+            document.querySelector('.scroll-container').innerHTML = '<div style="text-align: center; padding: 50px; color: var(--color-text-medium);">No data to display</div>';
+        } else {
+            initializeFlowchart();
+        }
+
+        function initializeFlowchart() {
+            const svg = d3.select("svg");
+            const width = +svg.attr("width");
+            const height = +svg.attr("height");
+
+            // Clear any existing content (except defs)
+            svg.selectAll("g").remove();
+
+            // Add arrow marker definition (ensure it's inside defs)
+            let defs = svg.select("defs");
+            if (defs.empty()) {
+                defs = svg.append("defs");
+            }
+            defs.append("marker")
+                .attr("id", "arrowhead")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 8)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "var(--color-primary-red)"); // Use CSS variable for fill
+
+            // Group nodes by level for vertical layout
+            const nodesByLevel = {};
+            nodes.forEach(node => {
+                const level = node.level || 0;
+                if (!nodesByLevel[level]) {
+                    nodesByLevel[level] = [];
+                }
+                nodesByLevel[level].push(node);
+            });
+
+            // Sort levels
+            const sortedLevels = Object.keys(nodesByLevel).sort((a, b) => parseInt(a) - parseInt(b));
+
+            // Calculate positions for vertical layout
+            const levelHeight = 200; // Vertical spacing between levels
+            const nodeWidth = 160;
+            const nodeHeight = 50;
+            const horizontalSpacing = 200; // Horizontal spacing between nodes in same level
+
+            // Position nodes vertically by level
+            sortedLevels.forEach((level, levelIndex) => {
+                const levelNodes = nodesByLevel[level];
+                const levelY = 100 + levelIndex * levelHeight; // Start from top
+
+                // Center nodes horizontally within each level
+                const totalWidth = (levelNodes.length - 1) * horizontalSpacing;
+                const startX = (width - totalWidth) / 2;
+
+                levelNodes.forEach((node, nodeIndex) => {
+                    node.x = startX + nodeIndex * horizontalSpacing;
+                    node.y = levelY;
+                });
+            });
+
+            // Add level labels
+            sortedLevels.forEach((level, levelIndex) => {
+                const levelY = 100 + levelIndex * levelHeight;
+                svg.append("text")
+                    .attr("class", "level-group")
+                    .attr("x", 50)
+                    .attr("y", levelY)
+                    .text(`Level ${level}`);
+            });
+
+            // Create a map for quick node lookup
+            const nodeById = new Map();
+            nodes.forEach(d => {
+                nodeById.set(d.id, d);
+            });
+
+            // Process links to use actual node objects
+            const processedLinks = links.map(link => {
+                const sourceNode = nodeById.get(link.source);
+                const targetNode = nodeById.get(link.target);
+
+                if (sourceNode && targetNode) {
+                    return {
+                        source: sourceNode,
+                        target: targetNode,
+                        sourceId: link.source,
+                        targetId: link.target
+                    };
+                }
+                return null;
+            }).filter(link => link !== null);
+            console.log('Processed Links:', processedLinks);
+
+            // Create links with curved paths for better visibility
+            const link = svg.append("g")
+                .attr("class", "links")
+                .selectAll("path")
+                .data(processedLinks)
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("fill", "none")
+                .attr("stroke", "var(--color-primary-red)")
+                .attr("stroke-width", 2)
+                .attr("marker-end", "url(#arrowhead)");
+
+            // Create nodes
+            const node = svg.append("g")
+                .attr("class", "nodes")
+                .selectAll("g")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.x},${d.y})`);
+
+            // Add rectangles to nodes
+            node.append("rect")
+                .attr("width", nodeWidth)
+                .attr("height", nodeHeight)
+                .attr("x", -nodeWidth/2)
+                .attr("y", -nodeHeight/2)
+                .on("click", function(event, d) {
+                    event.stopPropagation();
+                    highlightChildren(d.id);
+                })
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d);
+                })
+                .on("mouseout", hideTooltip);
+
+            // Add main text to nodes
+            node.append("text")
+                .text(d => d.id.length > 20 ? d.id.substring(0, 20) + "..." : d.id)
+                .attr("text-anchor", "middle")
+                .attr("dy", "-5px")
+                .attr("class", "node-text");
+
+            // Add level indicator
+            node.append("text")
+                .text(d => `Level: ${d.level || 0}`)
+                .attr("text-anchor", "middle")
+                .attr("dy", "15px")
+                .attr("class", "level-indicator");
+
+            // Update link paths to create smooth curves
+            function updateLinks() {
+                link.attr("d", d => {
+                    const source = d.source;
+                    const target = d.target;
+
+                    if (!source || !target) return "";
+
+                    // For vertical flow, create a smooth S-curve
+                    const midY = source.y + (target.y - source.y) / 2;
+
+                    return `M${source.x},${source.y + nodeHeight/2}
+                            C${source.x},${midY}
+                             ${target.x},${midY}
+                             ${target.x},${target.y - nodeHeight/2}`;
+                });
+            }
+            // Initial link update
+            updateLinks();
+
+            // Clear highlights when clicking on empty space
+            svg.on("click", function(event) {
+                if (event.target === this) {
+                    resetHighlight();
+                }
+            });
+
+            // Store processed links globally for highlighting
+            window.processedLinks = processedLinks;
+        }
+
+        function highlightChildren(clickedId) {
+            // Reset all highlights
+            resetHighlight();
+
+            // Highlight the clicked node
+            d3.selectAll("g.node")
+                .filter(d => d.id === clickedId)
+                .select("rect")
+                .classed("highlighted", true);
+
+            // Find and highlight children using processed links
+            const childIds = new Set();
+            if (window.processedLinks) {
+                window.processedLinks.forEach(link => {
+                    if (link.sourceId === clickedId) {
+                        childIds.add(link.targetId);
+
+                        // Highlight the link
+                        d3.selectAll(".link")
+                            .filter(d => d.sourceId === clickedId && d.targetId === link.targetId)
+                            .classed("link-highlighted", true);
+                    }
+                });
+            }
+            // Highlight child nodes
+            childIds.forEach(childId => {
+                d3.selectAll("g.node")
+                    .filter(d => d.id === childId)
+                    .select("rect")
+                    .classed("highlighted", true);
+            });
+        }
+
+        function resetHighlight() {
+            d3.selectAll("rect").classed("highlighted", false);
+            d3.selectAll(".link").classed("link-highlighted", false);
+        }
+
+        function centerView() {
+            const container = document.querySelector('.scroll-container');
+            container.scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
+            container.scrollTop = 0; // Start from top for vertical flow
+        }
+
+        function showTooltip(event, d) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = `
+                <strong>${d.id}</strong><br>
+                Level: ${d.level || 0}<br>
+                Click to highlight connections
+            `;
+            tooltip.style.left = (event.pageX + 15) + 'px';
+            tooltip.style.top = (event.pageY - 15) + 'px';
+            tooltip.classList.add('show');
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('show');
+        }
+
+        // Center the view on load
+        window.addEventListener('load', () => {
+            setTimeout(centerView, 500);
+        });
+    </script>
+</body>
+</html>

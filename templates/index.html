@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowchart Generator</title>
+    <style>
+        :root {
+            --color-dark-bg: #1a1a1a;
+            --color-dark-red: #330000;
+            --color-primary-red: #e50914; /* A vibrant red */
+            --color-accent-red: #ff4500; /* Orange-red for highlights */
+            --color-text-light: #f0f0f0;
+            --color-text-medium: #ccc;
+            --color-border-dark: #444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif; /* Using a modern font */
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--color-dark-bg) 0%, var(--color-dark-red) 100%);
+            color: var(--color-text-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.6); /* Semi-transparent dark background */
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+            border: 1px solid var(--color-border-dark);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: var(--color-primary-red);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.8em;
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(229, 9, 20, 0.6);
+            letter-spacing: 1px;
+        }
+
+        .upload-form {
+            text-align: center;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 25px 0;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(45deg, var(--color-primary-red) 0%, var(--color-dark-red) 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+            font-size: 1.1em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+
+        .file-input-button:hover {
+            background: linear-gradient(45deg, var(--color-dark-red) 0%, var(--color-primary-red) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.6);
+        }
+
+        .submit-btn {
+            background: linear-gradient(45deg, #28a745 0%, #1e7e34 100%); /* Green for submit */
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: 700;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-btn:hover {
+            background: linear-gradient(45deg, #1e7e34 0%, #28a745 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6);
+        }
+
+        .submit-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.7;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.1); /* Light transparent background */
+            border-radius: 8px;
+            display: none;
+            color: var(--color-text-light);
+            border: 1px dashed var(--color-primary-red);
+            font-size: 0.95em;
+        }
+
+        .instructions {
+            background-color: rgba(229, 9, 20, 0.1); /* Light red transparent background */
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 40px;
+            border: 1px solid var(--color-primary-red);
+            box-shadow: 0 2px 10px rgba(229, 9, 20, 0.2);
+        }
+
+        .instructions h3 {
+            margin-top: 0;
+            color: var(--color-primary-red);
+            font-size: 1.5em;
+            font-weight: 600;
+            text-shadow: 0 0 5px rgba(229, 9, 20, 0.3);
+        }
+
+        .instructions p {
+            color: var(--color-text-medium);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .instructions ul {
+            margin: 15px 0;
+            padding-left: 25px;
+            list-style-type: disc;
+            color: var(--color-text-medium);
+        }
+
+        .instructions li {
+            margin: 8px 0;
+            color: var(--color-text-light);
+            font-weight: 500;
+        }
+
+        .instructions strong {
+            color: var(--color-primary-red);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive Flowchart Generator</h1>
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <p>Upload a <strong>CSV file</strong> with the following columns:</p>
+            <ul>
+                <li><strong>key</strong>: The name/identifier of the node</li>
+                <li><strong>from</strong>: The level number this node belongs to</li>
+                <li><strong>to</strong>: The level number of connected child nodes</li>
+            </ul>
+            <p>The system will automatically create connections between nodes based on the level relationships.</p>
+        </div>
+        <form class="upload-form" method="POST" enctype="multipart/form-data">
+            <div class="file-input-wrapper">
+                <input type="file" name="file" accept=".csv" class="file-input" id="fileInput" required>
+                <label for="fileInput" class="file-input-button">
+                    Choose CSV File
+                </label>
+            </div>
+            <div class="file-info" id="fileInfo">
+                <strong>Selected file:</strong> <span id="fileName"></span>
+            </div>
+            <br>
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                Generate Flowchart
+            </button>
+        </form>
+    </div>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const submitBtn = document.getElementById('submitBtn');
+
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                submitBtn.disabled = false;
+            } else {
+                fileInfo.style.display = 'none';
+                submitBtn.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>
