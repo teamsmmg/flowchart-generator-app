@@ -1,0 +1,26 @@
+key,from,to
+Landing Page,1,2
+Signup Page,2,3
+Login Page,2,3
+Forgot Password,3,4
+OTP Verification,4,5
+Reset Password,5,6
+User Dashboard,6,7
+Profile Settings,7,8
+Browse Courses,7,8
+Course Detail Page,8,9
+Enroll in Course,9,10
+Video Lesson Page,10,11
+Notes Section,11,12
+Ask Doubts Page,11,12
+Quiz Page,11,12
+Submit Quiz Page,12,13
+View Results Page,13,14
+Progress Tracker,14,15
+Certificate Page,15,16
+Notifications Page,7,8
+Message Mentor Page,8,9
+Live Class Schedule,9,10
+Join Live Class,10,11
+Feedback Page,11,12
+Logout Page,7,1
